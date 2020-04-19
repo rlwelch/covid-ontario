@@ -2,3 +2,5 @@ pandas
 matplotlib
 requests
 beautifulsoup4
+geopandas
+shapely
