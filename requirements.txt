@@ -4,3 +4,7 @@ requests
 beautifulsoup4
 geopandas
 shapely
+proj
+cython
+GEOS
+geoplot

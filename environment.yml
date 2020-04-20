@@ -1,0 +1,11 @@
+name: covid-ontario 
+channels:
+  - conda-forge
+dependencies:
+  - cartopy
+  - geoplot
+  - requests
+  - bs4
+  - pandas 
+  - numpy   
+  - matplotlib
