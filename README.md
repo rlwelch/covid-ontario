@@ -1,3 +1,5 @@
+Follow the rise and fall of COVID-19 in Ontario.
+
 For a more detailed analysis, see the [#HowsMyFlattening](https://howsmyflattening.ca) project.
 
 ## Overview
@@ -35,3 +37,5 @@ For a more detailed analysis, see the [#HowsMyFlattening](https://howsmyflatteni
 
 ### About 
 This data comes from the Ontario Government's [Data Catalog](https://data.ontario.ca/dataset?keywords_en=COVID-19).
+
+This site is maintained by [Rob Welch](mailto:rlwelch@gmail.com)
