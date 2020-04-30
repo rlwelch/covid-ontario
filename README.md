@@ -38,4 +38,4 @@ For a more detailed analysis, see the [#HowsMyFlattening](https://howsmyflatteni
 ### About 
 This data comes from the Ontario Government's [Data Catalog](https://data.ontario.ca/dataset?keywords_en=COVID-19).
 
-This site is maintained by [Rob Welch](mailto:rlwelch@gmail.com)
+This site is maintained by [Rob Welch](mailto:rlwelch@gmail.com).
