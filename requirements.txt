@@ -1,10 +1,5 @@
 pandas
+numpy
 matplotlib
 requests
-beautifulsoup4
-geopandas
-shapely
-proj
-cython
-GEOS
-geoplot
+bs4
