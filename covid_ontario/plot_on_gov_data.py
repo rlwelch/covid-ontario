@@ -407,7 +407,7 @@ def main():
         cases,
         "2020-03-15",
         colormap="tab20c",
-        title_append="COVID daily testing overview",
+        title_append="",
     )
     plt.xlabel("Testing date")
     fig.savefig(os.path.join(FOLDER_IMAGES, "overview.png"))
