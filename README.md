@@ -2,6 +2,8 @@ Follow the rise and fall of COVID-19 in Ontario.
 
 This is an indepedent project to show data from the Ontario Government's [Data Catalog](https://data.ontario.ca/dataset?keywords_en=COVID-19). For a more detailed analysis, see the [#HowsMyFlattening](https://howsmyflattening.ca) project.
 
+Please follow the guidance of Ontario's public health experts and do your part to [stop the spread](https://www.ontario.ca/page/covid-19-stop-spread).
+
 ## Overview
 ![](covid_ontario/plots/overview.png) 
 
