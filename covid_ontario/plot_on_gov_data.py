@@ -232,7 +232,7 @@ def plot_timeline(
     medium_font = 12
     large_font = 16
 
-    fig, ax_output = plt.subplots(nrows=1 + plot_change, ncols=1, figsize=(20, 7))
+    fig, ax_output = plt.subplots(nrows=1 + plot_change, ncols=1)
 
     time_series.index = pd.to_datetime(time_series.index)
     ts = {"total": time_series}
@@ -248,6 +248,8 @@ def plot_timeline(
             "ylabel": "# Cases",
             "xlabel": "Date",
         }
+    else: 
+        fig.set_size_inches(20, 7)
 
     # Iterate over the two kinds of graph: total, and change
     for name, ax in axes.items():
@@ -473,7 +475,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "positive_cases.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "positive_cases.png"), bbox_inches='tight')
 
     # Plot: deaths by episode date
     mask_fatal = outcomes["outcome"] == "Fatal"
@@ -489,7 +491,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths.png"), bbox_inches='tight')
 
     # Plot: cases by city
     # Get the top cities by case count
@@ -508,7 +510,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_city.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_city.png"), bbox_inches='tight')
 
     # Plot: deaths by city
     mask_fatal = outcomes["outcome"] == "Fatal"
@@ -524,7 +526,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths_city.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths_city.png"), bbox_inches='tight')
 
     # Plot: cases by age group
     age_ts = get_value_counts_timeseries(outcomes, "age")
@@ -538,7 +540,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_age.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_age.png"), bbox_inches='tight')
 
     # Plot: deaths by age group
     mask_fatal = outcomes["outcome"] == "Fatal"
@@ -556,7 +558,7 @@ def main():
         plot_change=False,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths_age.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "deaths_age.png"), bbox_inches='tight')
 
     # Plot: cases by acquisition method
     acquisition_ts = get_value_counts_timeseries(outcomes, "acquisition")
@@ -568,15 +570,15 @@ def main():
         days_warning=7,
     )
     plt.xlabel("Episode date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_acquisition.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "cases_acquisition.png"), bbox_inches='tight')
 
     # Plot: mortality by age
     mortality_age = mortality_groupby(outcomes, "age")
     age_exclude = ["<20", "Unknown"]
     mortality_age = mortality_age[~mortality_age.index.isin(age_exclude)]
-    mortality_age
     fig = plot_mortality_groupby(mortality_age)
-    fig.savefig(os.path.join(FOLDER_IMAGES, "mortality_age.png"))
+    plt.title("Mortality by age group")
+    fig.savefig(os.path.join(FOLDER_IMAGES, "mortality_age.png"), bbox_inches='tight')
 
 
 if __name__ == "__main__":
