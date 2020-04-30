@@ -486,7 +486,7 @@ def main():
         deaths_ts[["Deaths"]],
         "2020-03-08",
         colormap="RdBu",
-        title_append="COVID deaths per episode date",
+        title_append="COVID deaths by episode date",
         days_warning=14,
         plot_change=False,
     )
