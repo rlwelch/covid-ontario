@@ -412,7 +412,7 @@ def main():
         title_append="",
     )
     plt.xlabel("Testing date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "overview.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "overview.png"), bbox_inches='tight')
 
     # Plot: Hospital load
     healthcare_cols = {
@@ -428,7 +428,7 @@ def main():
         title_append="Hospital beds occupied by COVID patients",
         plot_change=False,
     )
-    fig.savefig(os.path.join(FOLDER_IMAGES, "hospital.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "hospital.png"), bbox_inches='tight')
 
     # Plot: Testing volume
     case_cols = ["Total tests completed in the last day"]
@@ -443,7 +443,7 @@ def main():
     ax = plt.gca()
     ax.legend().set_visible(False)
     plt.xlabel("Testing date")
-    fig.savefig(os.path.join(FOLDER_IMAGES, "testing.png"))
+    fig.savefig(os.path.join(FOLDER_IMAGES, "testing.png"), bbox_inches='tight')
 
     # ----- Second dataset: Confirmed positive COVID-19 cases-----
     # Download and clean up
