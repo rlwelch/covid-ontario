@@ -1,1 +1,1 @@
-![overview]:(covid_ontario/plots/overview.png) 
+![overview](covid_ontario/plots/overview.png) 
