@@ -397,6 +397,11 @@ def plot_mortality_groupby(mortality_groups, colormap="rainbow"):
 
 
 def main():
+    if not os.path.exists(FOLDER_TEST_DATA):
+        os.mkdir(FOLDER_TEST_DATA)
+    if not os.path.exists(FOLDER_IMAGES):
+        os.mkdir(FOLDER_IMAGES)
+
     # ----- First dataset: status summary of cases -----
     # Download and clean up
     dataset = "Status of COVID-19 cases in Ontario"
