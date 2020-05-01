@@ -18,7 +18,6 @@ Please follow the guidance of Ontario's public health experts and do your part t
 
 _Episode date_ is the estimated date of disease onset. 
 
-![](covid_ontario/plots/positive_cases.png) 
 ## Deaths
 ![](covid_ontario/plots/deaths.png) 
 
