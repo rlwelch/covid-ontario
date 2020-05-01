@@ -7,22 +7,24 @@ Please follow the guidance of Ontario's public health experts and do your part t
 ## Overview
 ![](covid_ontario/plots/overview.png) 
 
-## Hospital load
+## Hospital beds 
 ![](covid_ontario/plots/hospital.png) 
 
 ## Testing volume
 ![](covid_ontario/plots/testing.png) 
 
-## Confirmed positive cases
+## Confirmed COVID cases 
+
+_Episode date_ is the estimated date of disease onset. 
 ![](covid_ontario/plots/positive_cases.png) 
 
 ## Deaths
 ![](covid_ontario/plots/deaths.png) 
 
-## Cases by city
+## Cases by Public Health Unit 
 ![](covid_ontario/plots/cases_city.png) 
 
-## Deaths by city
+## Deaths by Public Health Unit 
 ![](covid_ontario/plots/deaths_city.png) 
 
 ## Cases by age group
@@ -34,7 +36,7 @@ Please follow the guidance of Ontario's public health experts and do your part t
 ## Cases by acquisition method
 ![](covid_ontario/plots/cases_acquisition.png) 
 
-## Mortality by age group 
+## Mortality rate by age group 
 ![](covid_ontario/plots/mortality_age.png) 
 
 ### About 

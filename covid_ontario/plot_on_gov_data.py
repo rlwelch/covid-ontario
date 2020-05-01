@@ -229,7 +229,7 @@ def plot_timeline(
     """
     cmap = plt.get_cmap(colormap)
     small_font = 10
-    medium_font = 12
+    medium_font = 14
     large_font = 16
 
     fig, ax_output = plt.subplots(nrows=1 + plot_change, ncols=1)
@@ -325,6 +325,8 @@ def plot_timeline(
         ax.xaxis.grid(True, which="major")
 
         title_text = text[name]["title"]
+        if not plot_change:
+            title_text = ""
         if title_append:
             title_text = f"{title_append}\n{title_text}"
         ax.set_title(title_text, fontsize=large_font)
@@ -386,7 +388,7 @@ def plot_mortality_groupby(mortality_groups, colormap="rainbow"):
 
     ax.set_xlim([0, 1])
     ax.set_title(f"Mortality by {group_label}", fontsize=16)
-    ax.set_xlabel("Mortality (%)", fontsize=16)
+    ax.set_xlabel("Mortality rate", fontsize=16)
     ax.set_ylabel(group_label.capitalize(), rotation=0, labelpad=40, fontsize=16)
 
     ax.xaxis.set_major_locator(ticker.MultipleLocator(0.1))
@@ -410,16 +412,20 @@ def main():
 
     # Plot: Overview
     cases = tests[["Confirmed Positive", "Resolved", "Deaths"]]
+    cases = cases.rename(columns={
+        "Confirmed Positive": "New cases",
+        "Resolved": "Resolved cases"
+    })
     fig = plot_timeline(
         cases,
         "2020-03-15",
         colormap="tab20c",
         title_append="",
     )
-    plt.xlabel("Testing date")
+    plt.xlabel("Date")
     fig.savefig(os.path.join(FOLDER_IMAGES, "overview.png"), bbox_inches='tight')
 
-    # Plot: Hospital load
+    # Plot: Hospital beds
     healthcare_cols = {
         "Number of patients hospitalized with COVID-19": "Hospital beds",
         "Number of patients in ICU with COVID-19": "ICU beds",
@@ -430,7 +436,7 @@ def main():
         healthcare,
         "2020-04-02",
         colormap="Paired",
-        title_append="Hospital beds occupied by COVID patients",
+        title_append="Hospital beds occupied by COVID patients per day",
         plot_change=False,
     )
     fig.savefig(os.path.join(FOLDER_IMAGES, "hospital.png"), bbox_inches='tight')
@@ -442,12 +448,12 @@ def main():
         cases,
         "2020-04-14",
         colormap="tab20b",
-        title_append="COVID tests performed",
+        title_append="COVID tests performed in the last day",
         plot_change=False,
     )
     ax = plt.gca()
     ax.legend().set_visible(False)
-    plt.xlabel("Testing date")
+    plt.xlabel("Date")
     fig.savefig(os.path.join(FOLDER_IMAGES, "testing.png"), bbox_inches='tight')
 
     # ----- Second dataset: Confirmed positive COVID-19 cases-----
@@ -475,7 +481,7 @@ def main():
         all_cases_ts,
         "2020-03-08",
         colormap="tab10",
-        title_append="Confirmed positive COVID cases by episode date",
+        title_append="COVID cases by episode date",
         days_warning=7,
         plot_change=False,
     )
@@ -510,7 +516,7 @@ def main():
     fig = plot_timeline(
         city_ts,
         start_date="2020-03-08",
-        title_append="COVID cases by city",
+        title_append="COVID cases by Public Health Unit",
         days_warning=7,
         plot_change=False,
     )
@@ -526,7 +532,7 @@ def main():
     fig = plot_timeline(
         fatal_city_ts,
         start_date="2020-03-08",
-        title_append="COVID deaths by city",
+        title_append="COVID deaths by Public Health Unit",
         days_warning=14,
         plot_change=False,
     )
@@ -582,7 +588,7 @@ def main():
     age_exclude = ["<20", "Unknown"]
     mortality_age = mortality_age[~mortality_age.index.isin(age_exclude)]
     fig = plot_mortality_groupby(mortality_age)
-    plt.title("Mortality by age group")
+    plt.title("")
     fig.savefig(os.path.join(FOLDER_IMAGES, "mortality_age.png"), bbox_inches='tight')
 
 
