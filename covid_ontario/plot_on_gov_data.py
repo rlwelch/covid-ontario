@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 import matplotlib.cm as cm
+import matplotlib as mpl
 import os.path
+
+mpl.rc("font", family="Arial")
 
 # Government of Ontario COVID data
 # Base URL of the public facing website
