@@ -213,6 +213,7 @@ def plot_timeline(
     title_append="",
     days_warning=0,
     plot_change=True,
+    title_total=False
 ):
     """
     Make a pretty plot of a timeseries.
@@ -330,6 +331,8 @@ def plot_timeline(
         title_text = text[name]["title"]
         if not plot_change:
             title_text = ""
+        if title_total and (name == "total"):
+            title_text = title_total
         if title_append:
             title_text = f"{title_append}\n{title_text}"
         ax.set_title(title_text, fontsize=large_font)
@@ -416,7 +419,7 @@ def main():
     # Plot: Overview
     cases = tests[["Confirmed Positive", "Resolved", "Deaths"]]
     cases = cases.rename(columns={
-        "Confirmed Positive": "New cases",
+        "Confirmed Positive": "Outstanding cases",
         "Resolved": "Resolved cases"
     })
     fig = plot_timeline(
@@ -424,6 +427,7 @@ def main():
         "2020-03-15",
         colormap="tab20c",
         title_append="",
+        title_total="Running total"
     )
     plt.xlabel("Date")
     fig.savefig(os.path.join(FOLDER_IMAGES, "overview.png"), bbox_inches='tight')
