@@ -366,7 +366,7 @@ def get_value_counts_timeseries(df, col_name):
     return col_values_ts
 
 
-def mortality_groupby(outcomes, groupby_col_name, allowed_values=[]):
+def mortality_groupby(outcomes, groupby_col_name, allowed_values=False):
     """Show mortality disaggregated by the values in groupby_col_name."""
     df = outcomes[["Resolved", "Fatal"] + [groupby_col_name]]
     if allowed_values:
