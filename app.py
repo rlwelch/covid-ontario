@@ -1,20 +1,32 @@
 import os
-
+import requests
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+# Data sources
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# Dash app configuration
+STYLESHEET = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
+
+# Dash 
+app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
 server = app.server
 
 app.layout = html.Div(
     [
-        html.H2("Coming soon"),
-        html.H6("This is a test dashboard."),
-        html.Div("Select a city:"),
+        html.H2("covid-ontario"),
+        html.H6("Follow the rise and fall of COVID-19 in Ontario."),
+        html.Div(
+            html.P([
+                    """This is an independent project to show data from the Ontario Government’s Data Catalog. 
+                    For a more detailed analysis, see the #HowsMyFlattening project.""",
+                    html.Br(),
+                    """Please follow the guidance of Ontario’s public health experts and do your part to stop the spread."""
+            ]),                 
+        ),
+        # Dropdown menu example
         dcc.Dropdown(
             id="dropdown",
             options=[{"label": i, "value": i} for i in ["Toronto", "Ottawa", "Hamilton"]],
@@ -23,7 +35,6 @@ app.layout = html.Div(
         html.Div(id="display-value"),
     ]
 )
-
 
 @app.callback(
     dash.dependencies.Output("display-value", "children"),
