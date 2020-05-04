@@ -1,11 +1,12 @@
 import os
 import requests
+import pandas as pd
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from datetime import date
+import dash_bootstrap_components as dbc
 
-# --- Model: Data ---
+# --- Model: Requests and Pandas ---
 # Data sources
 API_BASE = "https://data.ontario.ca/api/3/action/"
 PACKAGE_IDS = {
@@ -42,56 +43,66 @@ def get_resource_data(resource_id):
     pass
 
 
-# --- View: Plotly ---
+def model():
+    # Get the current ID of the resources, and how recently they were updated
+    resource_ids = {}
+    last_updated = {}
+    for name, package_id in PACKAGE_IDS.items():
+        resource_ids[name], last_updated[name] = get_resource_id(name)
+    most_recent_update = (
+        pd.to_datetime(list(last_updated.values())).tz_localize(tz="UTC").max()
+    )
 
+    return most_recent_update
+
+
+# --- View: Plotly, configurations for Dash  ---
+def format_date(unformatted_date):
+    timezone_label = "Eastern"
+    timezone_dest = "Canada/Eastern"
+    date_format = "%B %-d, %-I:%M %p"
+
+    localized_date = unformatted_date.tz_convert(timezone_dest)
+    formatted_datetime = localized_date.strftime(date_format)
+    return f"{formatted_datetime} ({timezone_label})"
+
+STYLESHEET = [dbc.themes.FLATLY]
+
+TEXT_TITLE = "covid-ontario"
+TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario."
+TEXT_BODY = """This is an independent project to visualize the Ontario Government’s Data Catalog."""
+TEXT_WARNING = """Please do your part to stop the spread."""
+TEXT_MOST_RECENT_UPDATE = "Most recent update: {}"
 
 # --- Controller: Dash ---
 # Dash app configuration
-STYLESHEET = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+def display_most_recent_update():
+    most_recent_update = model()
+    display_date = format_date(most_recent_update)
+    return display_date
 
 # Dash
 app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
 server = app.server
-
-app.layout = html.Div(
+app.layout = dbc.Container(
     [
-        html.H2("covid-ontario"),
-        html.H6("Follow the rise and fall of COVID-19 in Ontario."),
+        html.H2(TEXT_TITLE),
+        html.H6(TEXT_TAGLINE),
         html.Div(
             html.P(
                 [
-                    """This is an independent project to show data from the Ontario Government’s Data Catalog. 
-                    For a more detailed analysis, see the #HowsMyFlattening project.""",
+                    TEXT_BODY,
                     html.Br(),
-                    """Please follow the guidance of Ontario’s public health experts and do your part to stop the spread.""",
-                    html.Br(),
-                    html.Br(),
-                    """When was the data last updated?""",
+                    TEXT_WARNING,
                 ]
             ),
         ),
-        # Dropdown menu example
-        dcc.Dropdown(
-            id="dropdown",
-            options=[
-                {"label": package_label, "value": package_name}
-                for package_name, package_label in PACKAGE_LABELS.items()
-            ],
-            value="status",
-            clearable=False,
-        ),
-        html.Div(id="display-value"),
-    ]
+        html.Div(
+            TEXT_MOST_RECENT_UPDATE.format(display_most_recent_update()),
+        )
+    ],
+    style={'marginTop': 50}
 )
-
-
-@app.callback(
-    dash.dependencies.Output("display-value", "children"),
-    [dash.dependencies.Input("dropdown", "value")],
-)
-def display_value(value):
-    return 'Most recent update: "{}"'.format(get_resource_id(value)[1])
-
 
 if __name__ == "__main__":
     app.run_server(debug=True)

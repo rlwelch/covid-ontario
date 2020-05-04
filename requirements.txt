@@ -1,7 +1,9 @@
 gunicorn
 requests
+pandas
 plotly
 dash
 dash-renderer
 dash-html-components
 dash-core-components
+dash-bootstrap-components
