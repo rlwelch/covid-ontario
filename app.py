@@ -70,19 +70,20 @@ def model():
 
 # --- Text
 TEXT_TITLE = "covid-ontario"
-TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario."
-TEXT_BODY = """This is an independent project to visualize the Ontario Government’s Data Catalog."""
-TEXT_WARNING = """Please do your part to stop the spread."""
-TEXT_MOST_RECENT_UPDATE = "Most recent update: {}"
+TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario"
+
+TEXT_BODY = "This is an independent project to visualize the "
+TEXT_LINK_CATALOG = "Ontario Data Catalog"
+URL_LINK_CATALOG = "https://data.ontario.ca/dataset?keywords_en=COVID-19"
+
+TEXT_WARNING = "Please do your part to "
+TEXT_LINK_WARNING = "stop the spread"
+URL_LINK_WARNING = "https://covid-19.ontario.ca/index.html"
+
+TEXT_MOST_RECENT_UPDATE = "Most recent update:"
 
 # ------ View ------
-class ContainerElements:
-    """The elements of the container. This specifies the layout of the page."""
-
-    def __init__(self):
-        pass
-
-
+# --- Data formatting
 def format_date(unformatted_date):
     timezone_label = "Eastern"
     timezone_dest = "Canada/Eastern"
@@ -93,27 +94,52 @@ def format_date(unformatted_date):
     return f"{formatted_datetime} ({timezone_label})"
 
 
+# --- Page layout
+def build_layout():
+    layout = dbc.Container(
+        [
+            # Header
+            html.H1(TEXT_TITLE),
+            html.H4(TEXT_TAGLINE),
+            html.Br(),
+
+            # Intro paragraph
+            html.Div(html.P([
+                TEXT_BODY, html.A(TEXT_LINK_CATALOG, href=URL_LINK_CATALOG), ".",
+                html.Br(), 
+                TEXT_WARNING, html.A(TEXT_LINK_WARNING, href=URL_LINK_WARNING), ".",
+                ]),),
+
+            # Most recently updated
+            html.Div(TEXT_MOST_RECENT_UPDATE),
+            html.Div(id="live-update-text"),
+            dcc.Interval(
+                id="interval-component", interval=10 * 1000, n_intervals=0  # 10 seconds
+            ),
+            # Plots!
+        ],
+        style=CONTAINER_STYLE,
+    )
+    return layout
+
+
 STYLESHEET = [dbc.themes.FLATLY]
 CONTAINER_STYLE = {"marginTop": 50}
 
 # ------ Controller ---------
-def display_most_recent_update():
+app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
+server = app.server
+app.layout = build_layout()
+
+
+@app.callback(
+    dash.dependencies.Output("live-update-text", "children"),
+    [dash.dependencies.Input("interval-component", "n_intervals")],
+)
+def display_most_recent_update(n):
     most_recent_update = model()
     display_date = format_date(most_recent_update)
     return display_date
-
-
-app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
-server = app.server
-app.layout = dbc.Container(
-    [
-        html.H2(TEXT_TITLE),
-        html.H6(TEXT_TAGLINE),
-        html.Div(html.P([TEXT_BODY, html.Br(), TEXT_WARNING,]),),
-        html.Div(TEXT_MOST_RECENT_UPDATE.format(display_most_recent_update()),),
-    ],
-    style=CONTAINER_STYLE,
-)
 
 if __name__ == "__main__":
     app.run_server(debug=True)
