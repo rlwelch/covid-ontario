@@ -45,9 +45,9 @@ class Dataset:
 
     def get_resource_data(self):
         """
-        Get the tabular data from the resource.
+        Get tabular data from the resource.
         """
-        url = f"{API_BASE}datastore_search?resource_id={self.resource_id}&limit=32000"
+        url = f"{API_BASE}datastore_search?resource_id={self.resource_id}&limit=200"
         records = requests.get(url).json()["result"]["records"]
         self.data = pd.DataFrame(records)
 
@@ -61,6 +61,16 @@ def build_datasets():
         d.get_resource_data()
         datasets[name] = d 
     return datasets
+
+
+def check_for_updates(datasets):
+    """ Check to see if the resource has changed. If it has, download again. """
+    for d in datasets.values():
+        current_last_modified = d.last_modified
+        d.get_resource()
+        if d.last_modified != current_last_modified:
+            d.get_data()
+     
 
 def most_recent_update(datasets):
     """ Return the most recent update of the all the datasets. """ 
@@ -96,6 +106,14 @@ def format_date(unformatted_date):
 
 # --- Page layout
 def build_layout(datasets):
+    # Check for updates on page load
+    #   This belongs in controller, but:
+    #   Checking data as part of serving layout means
+    #       We download on app restart
+    #       We only check on page refresh (and download if the data has changed)
+    check_for_updates(datasets)
+    most_recently_updated = format_date(most_recent_update(datasets))
+    # Layout itself
     layout = dbc.Container(
     [
             # Header
@@ -115,7 +133,7 @@ def build_layout(datasets):
             # Last updated
             html.Div(
                 html.P([
-                TEXT_MOST_RECENT_UPDATE, format_date(most_recent_update(datasets))
+                TEXT_MOST_RECENT_UPDATE, most_recently_updated
             ])
             )
         ], 
