@@ -52,17 +52,18 @@ class Dataset:
         self.data = pd.DataFrame(records)
 
 
-def model():
-    # Assemble datasets
+def build_datasets():
+    """ Download and return every dataset in PACKAGE_ID. """
     datasets = {}
     for name, package_id in PACKAGE_IDS.items():
-        # Instantiate a new dataset
-        dataset = Dataset(name, package_id)
-        # Get the current resource ID
-        dataset.get_resource()
-        # Save it to an entry in the dict
-        datasets[name] = dataset
+        d = Dataset(name, package_id)
+        d.get_resource()
+        d.get_resource_data()
+        datasets[name] = d 
+    return datasets
 
+def most_recent_update(datasets):
+    """ Return the most recent update of the all the datasets. """ 
     last_updated = [d.last_modified for d in datasets.values()]
     most_recent_update = pd.to_datetime(last_updated).tz_localize(tz="UTC").max()
     return most_recent_update
@@ -80,7 +81,7 @@ TEXT_WARNING = "Please do your part to "
 TEXT_LINK_WARNING = "stop the spread"
 URL_LINK_WARNING = "https://covid-19.ontario.ca/index.html"
 
-TEXT_MOST_RECENT_UPDATE = "Most recent update:"
+TEXT_MOST_RECENT_UPDATE = "Most recent update: "
 
 # ------ View ------
 # --- Data formatting
@@ -91,34 +92,34 @@ def format_date(unformatted_date):
 
     localized_date = unformatted_date.tz_convert(timezone_dest)
     formatted_datetime = localized_date.strftime(date_format)
-    return f"{formatted_datetime} ({timezone_label})"
-
+    return f"{formatted_datetime} {timezone_label}"
 
 # --- Page layout
-def build_layout():
+def build_layout(datasets):
     layout = dbc.Container(
-        [
+    [
             # Header
             html.H1(TEXT_TITLE),
             html.H4(TEXT_TAGLINE),
             html.Br(),
 
             # Intro paragraph
-            html.Div(html.P([
+            html.Div(
+                html.P([
                 TEXT_BODY, html.A(TEXT_LINK_CATALOG, href=URL_LINK_CATALOG), ".",
                 html.Br(), 
                 TEXT_WARNING, html.A(TEXT_LINK_WARNING, href=URL_LINK_WARNING), ".",
-                ]),),
+                ]),
+                ),
 
-            # Most recently updated
-            html.Div(TEXT_MOST_RECENT_UPDATE),
-            html.Div(id="live-update-text"),
-            dcc.Interval(
-                id="interval-component", interval=10 * 1000, n_intervals=0  # 10 seconds
-            ),
-            # Plots!
-        ],
-        style=CONTAINER_STYLE,
+            # Last updated
+            html.Div(
+                html.P([
+                TEXT_MOST_RECENT_UPDATE, format_date(most_recent_update(datasets))
+            ])
+            )
+        ], 
+        style=CONTAINER_STYLE
     )
     return layout
 
@@ -129,17 +130,10 @@ CONTAINER_STYLE = {"marginTop": 50}
 # ------ Controller ---------
 app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
 server = app.server
-app.layout = build_layout()
 
+datasets = build_datasets()
 
-@app.callback(
-    dash.dependencies.Output("live-update-text", "children"),
-    [dash.dependencies.Input("interval-component", "n_intervals")],
-)
-def display_most_recent_update(n):
-    most_recent_update = model()
-    display_date = format_date(most_recent_update)
-    return display_date
+app.layout = build_layout(datasets)
 
 if __name__ == "__main__":
     app.run_server(debug=True)
