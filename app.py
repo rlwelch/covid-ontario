@@ -63,7 +63,7 @@ def build_datasets():
     return datasets
 
 
-def check_for_updates(datasets):
+def refresh_datasets(datasets):
     """ Check to see if the resource has changed. If it has, download again. """
     for d in datasets.values():
         current_last_modified = d.last_modified
@@ -144,17 +144,16 @@ CONTAINER_STYLE = {"marginTop": 50}
 app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
 server = app.server
 
-# Download data on app restart
+# App restart: download data
 datasets = build_datasets()
 
-# Check for new data on serving layout 
-#   This means on page refresh, download new data if it has changed
-def serve_layout(datasets):
-    check_for_updates(datasets)
+# Page refresh: check for new data, download if it has changed
+def serve_layout():
+    refresh_datasets(datasets)
     layout = build_layout(datasets)
     return layout
 
-app.layout = serve_layout(datasets)
+app.layout = serve_layout
 
 if __name__ == "__main__":
     app.run_server(debug=True)
