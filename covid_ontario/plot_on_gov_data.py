@@ -424,7 +424,7 @@ def main():
     })
     fig = plot_timeline(
         cases,
-        "2020-03-15",
+        "2020-03-24",
         colormap="tab20c",
         title_append="",
         title_total="Running total"
