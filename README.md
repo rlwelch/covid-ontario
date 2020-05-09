@@ -1,4 +1,4 @@
-Follow the rise and fall of COVID-19 in Ontario.
+> Follow the rise and fall of COVID-19 in Ontario
 
 This is an independent project to visualize the [Ontario Data Catalog](https://data.ontario.ca/dataset?keywords_en=COVID-19) COVID datasets.
 
