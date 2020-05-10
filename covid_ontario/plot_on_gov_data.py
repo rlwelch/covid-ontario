@@ -436,7 +436,7 @@ def main():
     healthcare_cols = {
         "Number of patients hospitalized with COVID-19": "Hospital beds",
         "Number of patients in ICU with COVID-19": "ICU beds",
-        "Number of patients in ICU on a ventilator with COVID-19": "Ventilated beds",
+        "Number of patients in ICU on a ventilator with COVID-19": "Ventilator beds",
     }
     healthcare = tests[healthcare_cols].rename(columns=healthcare_cols)
     fig = plot_timeline(
