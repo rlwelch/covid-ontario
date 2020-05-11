@@ -21,12 +21,6 @@ _Episode date_ is the estimated date of disease onset.
 ## Deaths
 ![](covid_ontario/plots/deaths.png) 
 
-## Cases by Public Health Unit 
-![](covid_ontario/plots/cases_city.png) 
-
-## Deaths by Public Health Unit 
-![](covid_ontario/plots/deaths_city.png) 
-
 ## Cases by age group
 ![](covid_ontario/plots/cases_age.png) 
 
