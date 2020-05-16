@@ -14,9 +14,8 @@ Please do your part to [stop the spread](https://covid-19.ontario.ca/index.html)
 ![](covid_ontario/plots/testing.png) 
 
 ## Confirmed COVID cases 
-![](covid_ontario/plots/positive_cases.png) 
-
 _Episode date_ is the estimated date of disease onset. 
+![](covid_ontario/plots/positive_cases.png) 
 
 ## Deaths
 ![](covid_ontario/plots/deaths.png) 
