@@ -417,10 +417,13 @@ def main():
     tests = clean_test_data(case_status)
 
     # Plot: Overview
-    cases = tests[["Confirmed Positive", "Resolved", "Deaths"]]
+    cases = tests[[
+        "Confirmed Positive", 
+        #"Resolved", 
+        "Deaths"]]
     cases = cases.rename(columns={
         "Confirmed Positive": "Outstanding cases",
-        "Resolved": "Resolved cases"
+        #"Resolved": "Resolved cases"
     })
     fig = plot_timeline(
         cases,
