@@ -10,9 +10,11 @@ _Outstanding cases_ are confirmed COVID cases who have not yet recovered or died
 
 ## Hospital beds 
 ![](covid_ontario/plots/hospital.png) 
+No data is available before April 2nd. 
 
 ## Testing volume
 ![](covid_ontario/plots/testing.png) 
+No data is available before April 15th.
 
 ## Confirmed COVID cases 
 _Episode date_ is the estimated date of disease onset. 

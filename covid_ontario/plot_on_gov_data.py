@@ -427,7 +427,7 @@ def main():
     })
     fig = plot_timeline(
         cases,
-        "2020-03-24",
+        "2020-03-08",
         colormap="tab20c",
         title_append="",
         title_total="Running total"
@@ -444,7 +444,7 @@ def main():
     healthcare = tests[healthcare_cols].rename(columns=healthcare_cols)
     fig = plot_timeline(
         healthcare,
-        "2020-04-02",
+        "2020-03-08",
         colormap="Paired",
         title_append="Hospital beds occupied by COVID patients per day",
         plot_change=False,
@@ -456,7 +456,7 @@ def main():
     cases = tests[case_cols]
     fig = plot_timeline(
         cases,
-        "2020-04-14",
+        "2020-03-08",
         colormap="tab20b",
         title_append="COVID tests performed in the last day",
         plot_change=False,
