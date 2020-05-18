@@ -124,7 +124,7 @@ def load_test_data(filename_test_data):
 
 def clean_test_data(tests):
     """
-    Clean the case data.
+    Clean the case count data.
     
     Parameters
     ==========
@@ -143,6 +143,26 @@ def clean_test_data(tests):
     df = df.astype(int)
     tests_cleaned = df
     return tests_cleaned
+
+
+def clean_pos_data(pos):
+    """
+    Clean the confirmed positive data.
+    
+    Parameters
+    ==========
+    pos: DataFrame
+        The COVID confirmed positive data.
+        
+    Return
+    ======
+    positives_cleaned: DataFrame
+        The COVID confirmed positive, cleaned.
+    """
+    df = pos.copy()
+    bad_date_mask = df["Accurate_Episode_Date"].str[0:4].astype(int) > int(pd.to_datetime("today").strftime("%Y"))
+    pos_cleaned = df[~bad_date_mask]
+    return pos_cleaned
 
 
 def get_and_load_data(dataset_name):
@@ -470,7 +490,8 @@ def main():
     # Download and clean up
     dataset = "Confirmed positive cases of COVID-19 in Ontario"
     pos_csv = get_and_load_data(dataset)
-    outcomes = pos_csv.rename(
+    outcomes = clean_pos_data(pos_csv)
+    outcomes = outcomes.rename(
         columns={
             "Accurate_Episode_Date": "date",
             "Case_AcquisitionInfo": "acquisition",
