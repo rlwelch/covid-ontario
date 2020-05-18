@@ -185,7 +185,9 @@ class Dataset:
         Clean the "Status of COVID-19 cases in Ontario" dataset
         """
         df = self.data
-        df["Reported Date"] = pd.to_datetime(df["Reported Date"]).dt.strftime("%Y-%m-%d")
+        df["Reported Date"] = pd.to_datetime(df["Reported Date"]).dt.strftime(
+            "%Y-%m-%d"
+        )
         df = df.set_index("Reported Date").sort_index()
         df = df.fillna(0)
         df = df.astype(int)
@@ -200,8 +202,6 @@ class Dataset:
                 "Number of patients in ICU on a ventilator with COVID-19": "Ventilated beds",
             }
         )
-        # Make into a tidy DataFrame
-        df = df.stack().reset_index().rename(columns={"level_1": "Measure", 0: "Count"})
         self.data = df
 
     def clean_data_con_pos(self):
@@ -209,9 +209,13 @@ class Dataset:
         Clean the "Confirmed positive cases of COVID-19 in Ontario" dataset
         """
         df = self.data
-        bad_date_mask = df["Accurate_Episode_Date"].str[0:4].astype(int) > int(pd.to_datetime("today").strftime("%Y"))
+        bad_date_mask = df["Accurate_Episode_Date"].str[0:4].astype(int) > int(
+            pd.to_datetime("today").strftime("%Y")
+        )
         df = df.loc[~bad_date_mask]
-        df["Accurate_Episode_Date"] = pd.to_datetime(df["Accurate_Episode_Date"])
+        df.loc[:, "Accurate_Episode_Date"] = pd.to_datetime(
+            df.loc[:, "Accurate_Episode_Date"]
+        )
         df = df.sort_values(by="Accurate_Episode_Date")
         df = df.rename(
             columns={
@@ -274,30 +278,19 @@ def format_date(unformatted_date):
 
 
 # --- Plotting!
-def plot_bar_timeseries(df):
+def plot_bar_timeseries(df, measures, colors, start_date):
     """ Make a pretty bar plot of a timeseries """
-    deaths = df[df["Measure"] == "Deaths"]
-    outstanding = df[df["Measure"] == "Outstanding cases"]
+    bars = [
+        go.Bar(name=m, x=df.index, y=df[m], marker_color=c)
+        for c, m in zip(colors, measures)
+    ]
 
     fig = go.Figure(
-        data=[
-            go.Bar(
-                name="Outstanding",
-                x=outstanding["Reported Date"],
-                y=outstanding["Count"],
-                offsetgroup=0,
-            ),
-            go.Bar(
-                name="Deaths",
-                x=deaths["Reported Date"],
-                y=deaths["Count"],
-                offsetgroup=1,
-            ),
-        ],
+        data=bars,
         layout=go.Layout(
             barmode="stack",
-            xaxis_range=[pd.to_datetime("2020-03-08"), pd.to_datetime("today")]
-            ),
+            xaxis_range=[pd.to_datetime(start_date), pd.to_datetime("today")],
+        ),
     )
     return fig
 
@@ -308,7 +301,10 @@ OVERVIEW_TITLE = "Overview"
 
 def plot_overview(df):
     """ Return an Overview plot. """
-    return plot_bar_timeseries(df)
+    measures = ["Outstanding cases", "Deaths"]
+    colors = ["steelblue", "gainsboro"]
+    start_date = "2020-03-08"
+    return plot_bar_timeseries(df, measures, colors, start_date)
 
 
 # --- Page layout
@@ -341,13 +337,14 @@ def build_layout(datasets):
             # Last updated
             html.Div(html.P([TEXT_MOST_RECENT_UPDATE, most_recently_updated])),
             html.Br(),
-
             # *** Plots!
             # Overview
-            html.Div([
-                html.H2([OVERVIEW_TITLE]), 
-                dcc.Graph(figure=plot_overview(data_status))
-            ]),
+            html.Div(
+                [
+                    html.H2([OVERVIEW_TITLE]),
+                    dcc.Graph(figure=plot_overview(data_status)),
+                ]
+            ),
             html.Br(),
             # Data table: status of recent cases
             html.Div(html.H2(TEXT_STATUS_TABLE)),
