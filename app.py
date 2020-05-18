@@ -199,7 +199,7 @@ class Dataset:
                 "Total tests completed in the last day": "Tests",
                 "Number of patients hospitalized with COVID-19": "Hospital beds",
                 "Number of patients in ICU with COVID-19": "ICU beds",
-                "Number of patients in ICU on a ventilator with COVID-19": "Ventilated beds",
+                "Number of patients in ICU on a ventilator with COVID-19": "Ventilator beds",
             }
         )
         self.data = df
@@ -330,6 +330,16 @@ def plot_overview(df):
     start_date = "2020-03-08"
     return plot_bar_timeseries(df, measures, colors, start_date)
 
+# *** Hospital
+HOSPITAL_TITLE = "Hospital beds"
+
+def plot_hospital(df):
+    """ Return a Hospital plot. """
+    measures = ["Hospital beds", "ICU beds", "Ventilator beds"]
+    colors = ["sandybrown", "salmon", "indianred"]
+    start_date = "2020-03-08"
+    return plot_bar_timeseries(df, measures, colors, start_date)
+
 
 # --- Page layout
 def build_layout(datasets):
@@ -368,6 +378,18 @@ def build_layout(datasets):
                     html.H2([OVERVIEW_TITLE]),
                     dcc.Graph(
                         figure=plot_overview(data_status),
+                        config={'displayModeBar': False}
+                        ),
+                ]
+            ),
+            html.Br(),
+
+            # Hospital
+            html.Div(
+                [
+                    html.H2([HOSPITAL_TITLE]),
+                    dcc.Graph(
+                        figure=plot_hospital(data_status),
                         config={'displayModeBar': False}
                         ),
                 ]
