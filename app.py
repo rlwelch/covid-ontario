@@ -2,6 +2,7 @@ import os
 import requests
 import pickle
 import pandas as pd
+import plotly.graph_objects as go
 import dash
 import dash_table
 import dash_core_components as dcc
@@ -61,7 +62,6 @@ class Dataset:
             if resource_data_status == 200:
                 self.clean_data()
                 self.save_cache()
-                
 
     def load_cache(self):
         """
@@ -101,7 +101,6 @@ class Dataset:
 
         return response.status_code
 
-
     def get_resource_data(self):
         """
         Get tabular data from the resource.
@@ -113,7 +112,6 @@ class Dataset:
         if self.name == "con_pos":
             status_code = self.get_resource_data_con_pos()
         return status_code
-
 
     # Downloading functions for each of the two datasets
     def get_resource_data_status(self):
@@ -165,7 +163,6 @@ class Dataset:
 
         return response.status_code
 
-
     def clean_data(self):
         """
         Prepare data for plotting.
@@ -188,20 +185,23 @@ class Dataset:
         Clean the "Status of COVID-19 cases in Ontario" dataset
         """
         df = self.data
-        df = df.set_index("Reported Date")
-        df.index = pd.to_datetime(df.index)
+        df["Reported Date"] = pd.to_datetime(df["Reported Date"]).dt.strftime("%Y-%m-%d")
+        df = df.set_index("Reported Date").sort_index()
         df = df.fillna(0)
         df = df.astype(int)
-        df = df.sort_index()
         df = df.rename(
             columns={
                 "Confirmed Positive": "Outstanding cases",
                 "Resolved": "Resolved cases",
+                "Total Cases": "Total cases",
+                "Total tests completed in the last day": "Tests",
                 "Number of patients hospitalized with COVID-19": "Hospital beds",
                 "Number of patients in ICU with COVID-19": "ICU beds",
                 "Number of patients in ICU on a ventilator with COVID-19": "Ventilated beds",
             }
         )
+        # Make into a tidy DataFrame
+        df = df.stack().reset_index().rename(columns={"level_1": "Measure", 0: "Count"})
         self.data = df
 
     def clean_data_con_pos(self):
@@ -213,14 +213,15 @@ class Dataset:
         df = df.sort_values(by="Accurate_Episode_Date")
         df = df.rename(
             columns={
-            'Accurate_Episode_Date': "Episode Date", 
-            'Age_Group': "Age", 
-            'Client_Gender': "Gender",
-            'Case_AcquisitionInfo': "Acquisition", 
-            'Outcome1': "Outcome", 
-            'Reporting_PHU_City': "PHU City"
-        })
-        self.data = df 
+                "Accurate_Episode_Date": "Episode Date",
+                "Age_Group": "Age",
+                "Client_Gender": "Gender",
+                "Case_AcquisitionInfo": "Acquisition",
+                "Outcome1": "Outcome",
+                "Reporting_PHU_City": "PHU City",
+            }
+        )
+        self.data = df
 
 
 def build_datasets():
@@ -255,8 +256,8 @@ URL_LINK_WARNING = "https://covid-19.ontario.ca/index.html"
 
 TEXT_MOST_RECENT_UPDATE = "Most recent data: "
 
-TEXT_STATUS_TABLE = "Status of recent cases: "
-TEXT_CON_POS_TABLE = "Confirmed positives: "
+TEXT_STATUS_TABLE = "Status of recent cases"
+TEXT_CON_POS_TABLE = "Confirmed positives"
 
 # ------ View ------
 # --- Data formatting
@@ -270,11 +271,49 @@ def format_date(unformatted_date):
     return f"{formatted_datetime} {timezone_label}"
 
 
+# --- Plotting!
+def plot_bar_timeseries(df):
+    """ Make a pretty bar plot of a timeseries """
+    deaths = df[df["Measure"] == "Deaths"]
+    outstanding = df[df["Measure"] == "Outstanding cases"]
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                name="Outstanding",
+                x=outstanding["Reported Date"],
+                y=outstanding["Count"],
+                offsetgroup=0,
+            ),
+            go.Bar(
+                name="Deaths",
+                x=deaths["Reported Date"],
+                y=deaths["Count"],
+                offsetgroup=1,
+            ),
+        ],
+        layout=go.Layout(
+            barmode="stack",
+            xaxis_range=[pd.to_datetime("2020-03-08"), pd.to_datetime("today")]
+            ),
+    )
+    return fig
+
+
+# *** Overview
+OVERVIEW_TITLE = "Overview"
+
+
+def plot_overview(df):
+    """ Return an Overview plot. """
+    return plot_bar_timeseries(df)
+
+
 # --- Page layout
 def build_layout(datasets):
     most_recently_updated = format_date(get_most_recent_update(datasets))
-    data_status = datasets["status"].data.tail(10)
-    data_con_pos = datasets["con_pos"].data.tail(10)
+    data_status = datasets["status"].data
+    data_con_pos = datasets["con_pos"].data
 
     # Layout itself
     layout = dbc.Container(
@@ -299,12 +338,21 @@ def build_layout(datasets):
             ),
             # Last updated
             html.Div(html.P([TEXT_MOST_RECENT_UPDATE, most_recently_updated])),
+            html.Br(),
+
+            # *** Plots!
+            # Overview
+            html.Div([
+                html.H2([OVERVIEW_TITLE]), 
+                dcc.Graph(figure=plot_overview(data_status))
+            ]),
+            html.Br(),
             # Data table: status of recent cases
             html.Div(html.H2(TEXT_STATUS_TABLE)),
             dash_table.DataTable(
                 id="table_status",
                 columns=[{"name": i, "id": i} for i in data_status.columns],
-                data=data_status.to_dict("records"),
+                data=data_status.tail(10).to_dict("records"),
             ),
             html.Br(),
             # Data table: confirmed positive cases
@@ -312,7 +360,7 @@ def build_layout(datasets):
             dash_table.DataTable(
                 id="table_con_pos",
                 columns=[{"name": i, "id": i} for i in data_con_pos.columns],
-                data=data_con_pos.to_dict("records"),
+                data=data_con_pos.tail(10).to_dict("records"),
             ),
             html.Br(),
         ],
@@ -341,4 +389,4 @@ def serve_layout():
 app.layout = serve_layout
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server()
