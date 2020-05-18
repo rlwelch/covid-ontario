@@ -268,7 +268,7 @@ TEXT_CON_POS_TABLE = "Confirmed positives"
 # ------ View ------
 # --- Data formatting
 def format_date(unformatted_date):
-    timezone_label = "Eastern"
+    timezone_label = ""
     timezone_dest = "Canada/Eastern"
     date_format = "%B %-d, %-I:%M %p"
 
@@ -281,7 +281,7 @@ def format_date(unformatted_date):
 def plot_bar_timeseries(df, measures, colors, start_date):
     """ Make a pretty bar plot of a timeseries """
     bars = [
-        go.Bar(name=m, x=df.index, y=df[m], marker_color=c)
+        go.Bar(name=m, x=df.index, y=df[m], marker_color=c, hovertemplate="%{x}: %{y}")
         for c, m in zip(colors, measures)
     ]
 
@@ -289,7 +289,31 @@ def plot_bar_timeseries(df, measures, colors, start_date):
         data=bars,
         layout=go.Layout(
             barmode="stack",
-            xaxis_range=[pd.to_datetime(start_date), pd.to_datetime("today")],
+            xaxis={
+                "type": "date",
+                "range":[pd.to_datetime(start_date), pd.to_datetime("today")],
+                "tickformat": "%B %-d",
+                "tickvals": [d for d in
+                    pd.date_range(df.index.min(), df.index.max())
+                    if (d.day in [1, 15])
+                    ],
+                "showgrid": True,
+                "gridcolor": "gainsboro",
+            },
+            yaxis={
+                "showgrid": True,
+                "gridcolor": "gainsboro",
+            },
+             legend={
+                "xanchor":"center",
+                "x": 0.5,
+                "y": 1.1,
+                "orientation": "h",
+                "traceorder": "reversed",
+            },
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            margin={"t": 0, "l": 0, "r": 0},
         ),
     )
     return fig
@@ -302,7 +326,7 @@ OVERVIEW_TITLE = "Overview"
 def plot_overview(df):
     """ Return an Overview plot. """
     measures = ["Outstanding cases", "Deaths"]
-    colors = ["steelblue", "gainsboro"]
+    colors = ["steelblue", "darkgray"]
     start_date = "2020-03-08"
     return plot_bar_timeseries(df, measures, colors, start_date)
 
@@ -342,16 +366,11 @@ def build_layout(datasets):
             html.Div(
                 [
                     html.H2([OVERVIEW_TITLE]),
-                    dcc.Graph(figure=plot_overview(data_status)),
+                    dcc.Graph(
+                        figure=plot_overview(data_status),
+                        config={'displayModeBar': False}
+                        ),
                 ]
-            ),
-            html.Br(),
-            # Data table: status of recent cases
-            html.Div(html.H2(TEXT_STATUS_TABLE)),
-            dash_table.DataTable(
-                id="table_status",
-                columns=[{"name": i, "id": i} for i in data_status.columns],
-                data=data_status.tail(10).to_dict("records"),
             ),
             html.Br(),
             # Data table: confirmed positive cases
