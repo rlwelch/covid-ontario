@@ -27,6 +27,9 @@ class Dataset:
     """
 
     def __init__(self, name, package_id):
+        """
+        Load a Dataset from a pickle, and update it if necessary.
+        """
         self.name = name
         self.package_id = package_id
         self.resource_id = ""
@@ -48,14 +51,17 @@ class Dataset:
 
         # Check the resource for updates
         current_last_modified = self.last_modified
-        self.get_resource()
+        resource_status = self.get_resource()
 
-        # If there is an update
+        # If the API call worked, and there is an update
         #   Download, clean and save data in the cache
-        if self.last_modified != current_last_modified:
-            self.get_resource_data()
-            self.clean_data()
-            self.save_cache()
+        if resource_status == 200 and self.last_modified != current_last_modified:
+            resource_data_status = self.get_resource_data()
+            # If downloading worked, clean and save the data
+            if resource_data_status == 200:
+                self.clean_data()
+                self.save_cache()
+                
 
     def load_cache(self):
         """
@@ -76,15 +82,25 @@ class Dataset:
 
     def get_resource(self):
         """
-        Get the attributes of the CSV resource associated with the to the package ID.
+        Call the API to the get the current attributes of the CSV resource. 
+        If the status is 200, update the attributes of the dataset with the new ones.
+        If the status is anything else, don't update the attributes.
+
+        Return the API status.
         """
         url = f"{API_BASE}package_show?id={self.package_id}"
-        resources = requests.get(url).json()["result"]["resources"]
-        resource = [r for r in resources if (r.get("format") == "CSV")][0]
-        self.resource_id = resource.get("id")
-        self.resource_name = resource.get("name")
-        self.url = resource.get("url")
-        self.last_modified = resource.get("last_modified")
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            resources = response.json()["result"]["resources"]
+            resource = [r for r in resources if (r.get("format") == "CSV")][0]
+            self.resource_id = resource.get("id")
+            self.resource_name = resource.get("name")
+            self.url = resource.get("url")
+            self.last_modified = resource.get("last_modified")
+
+        return response.status_code
+
 
     def get_resource_data(self):
         """
@@ -93,14 +109,18 @@ class Dataset:
         Note: if this doesn't work, consider switching to CSV downloads. 
         """
         if self.name == "status":
-            self.get_resource_data_status()
+            status_code = self.get_resource_data_status()
         if self.name == "con_pos":
-            self.get_resource_data_con_pos()
+            status_code = self.get_resource_data_con_pos()
+        return status_code
+
 
     # Downloading functions for each of the two datasets
     def get_resource_data_status(self):
         """ 
         Get the "Status of COVID-19 cases in Ontario" dataset
+
+        Return the API status.
         """
         fields = [
             "Reported Date",
@@ -115,12 +135,18 @@ class Dataset:
             "Number of patients in ICU on a ventilator with COVID-19",
         ]
         url = f"{API_BASE}datastore_search?resource_id={self.resource_id}&fields={','.join(fields)}&limit=32000"
-        records = requests.get(url).json()["result"]["records"]
-        self.data = pd.DataFrame(records)
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            records = response.json()["result"]["records"]
+            self.data = pd.DataFrame(records)
+
+        return response.status_code
 
     def get_resource_data_con_pos(self):
         """ 
         Get the "Confirmed positive cases of COVID-19 in Ontario" dataset
+        Return the API status
         """
         fields = [
             "Accurate_Episode_Date",
@@ -131,14 +157,26 @@ class Dataset:
             "Reporting_PHU_City",
         ]
         url = f"{API_BASE}datastore_search?resource_id={self.resource_id}&fields={','.join(fields)}&limit=32000"
-        records = requests.get(url).json()["result"]["records"]
-        self.data = pd.DataFrame(records)
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            records = response.json()["result"]["records"]
+            self.data = pd.DataFrame(records)
+
+        return response.status_code
+
 
     def clean_data(self):
         """
         Prepare data for plotting.
         Wrapper for the more specific cleaning functions.
         """
+        # Handle the case where there's no data to clean
+        df = self.data
+        if df.empty:
+            self.data = pd.DataFrame()
+
+        # Pick a cleaning function specific to that dataset
         if self.name == "status":
             self.clean_data_status()
         if self.name == "con_pos":
@@ -154,6 +192,7 @@ class Dataset:
         df.index = pd.to_datetime(df.index)
         df = df.fillna(0)
         df = df.astype(int)
+        df = df.sort_index()
         df = df.rename(
             columns={
                 "Confirmed Positive": "Outstanding cases",
@@ -169,7 +208,19 @@ class Dataset:
         """ 
         Clean the "Confirmed positive cases of COVID-19 in Ontario" dataset
         """
-        pass
+        df = self.data
+        df["Accurate_Episode_Date"] = pd.to_datetime(df["Accurate_Episode_Date"])
+        df = df.sort_values(by="Accurate_Episode_Date")
+        df = df.rename(
+            columns={
+            'Accurate_Episode_Date': "Episode Date", 
+            'Age_Group': "Age", 
+            'Client_Gender': "Gender",
+            'Case_AcquisitionInfo': "Acquisition", 
+            'Outcome1': "Outcome", 
+            'Reporting_PHU_City': "PHU City"
+        })
+        self.data = df 
 
 
 def build_datasets():
@@ -195,14 +246,14 @@ TEXT_TITLE = "covid-ontario"
 TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario"
 
 TEXT_BODY = "This is an independent project to visualize the "
-TEXT_LINK_CATALOG = "Ontario Data Catalog"
+TEXT_LINK_CATALOG = "Ontario Data Catalog's COVID-19 data"
 URL_LINK_CATALOG = "https://data.ontario.ca/dataset?keywords_en=COVID-19"
 
 TEXT_WARNING = "Please do your part to "
 TEXT_LINK_WARNING = "stop the spread"
 URL_LINK_WARNING = "https://covid-19.ontario.ca/index.html"
 
-TEXT_MOST_RECENT_UPDATE = "Most recent update: "
+TEXT_MOST_RECENT_UPDATE = "Most recent data: "
 
 TEXT_STATUS_TABLE = "Status of recent cases: "
 TEXT_CON_POS_TABLE = "Confirmed positives: "
@@ -249,7 +300,7 @@ def build_layout(datasets):
             # Last updated
             html.Div(html.P([TEXT_MOST_RECENT_UPDATE, most_recently_updated])),
             # Data table: status of recent cases
-            html.Div(html.P(TEXT_STATUS_TABLE)),
+            html.Div(html.H2(TEXT_STATUS_TABLE)),
             dash_table.DataTable(
                 id="table_status",
                 columns=[{"name": i, "id": i} for i in data_status.columns],
@@ -257,7 +308,7 @@ def build_layout(datasets):
             ),
             html.Br(),
             # Data table: confirmed positive cases
-            html.Div(html.P(TEXT_CON_POS_TABLE)),
+            html.Div(html.H2(TEXT_CON_POS_TABLE)),
             dash_table.DataTable(
                 id="table_con_pos",
                 columns=[{"name": i, "id": i} for i in data_con_pos.columns],
@@ -277,7 +328,7 @@ CONTAINER_STYLE = {"marginTop": 50}
 app = dash.Dash(__name__, external_stylesheets=STYLESHEET)
 server = app.server
 
-# App restart: download data
+# App restart: load data, and if necessary refresh it
 datasets = build_datasets()
 
 # Page refresh: check for new data, download if it has changed
