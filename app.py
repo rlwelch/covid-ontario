@@ -262,7 +262,6 @@ URL_LINK_WARNING = "https://covid-19.ontario.ca/index.html"
 
 TEXT_MOST_RECENT_UPDATE = "Most recent data: "
 
-TEXT_STATUS_TABLE = "Status of recent cases"
 TEXT_CON_POS_TABLE = "Confirmed positives"
 
 # ------ View ------
@@ -320,7 +319,7 @@ def plot_bar_timeseries(df, measures, colors, start_date):
 
 
 # *** Overview
-OVERVIEW_TITLE = "Overview"
+OVERVIEW_TITLE = "Deaths and outstanding cases"
 
 
 def plot_overview(df):
@@ -333,10 +332,21 @@ def plot_overview(df):
 # *** Hospital
 HOSPITAL_TITLE = "Hospital beds"
 
+
 def plot_hospital(df):
     """ Return a Hospital plot. """
     measures = ["Hospital beds", "ICU beds", "Ventilator beds"]
     colors = ["sandybrown", "salmon", "indianred"]
+    start_date = "2020-03-08"
+    return plot_bar_timeseries(df, measures, colors, start_date)
+
+# *** Tests
+TESTS_TITLE = "Testing volume"
+
+def plot_tests(df):
+    """ Return a Tests plot. """
+    measures = ["Tests"]
+    colors = ["darkslateblue"]
     start_date = "2020-03-08"
     return plot_bar_timeseries(df, measures, colors, start_date)
 
@@ -390,6 +400,18 @@ def build_layout(datasets):
                     html.H2([HOSPITAL_TITLE]),
                     dcc.Graph(
                         figure=plot_hospital(data_status),
+                        config={'displayModeBar': False}
+                        ),
+                ]
+            ),
+            html.Br(),
+
+            # Tests
+            html.Div(
+                [
+                    html.H2([TESTS_TITLE]),
+                    dcc.Graph(
+                        figure=plot_tests(data_status),
                         config={'displayModeBar': False}
                         ),
                 ]
