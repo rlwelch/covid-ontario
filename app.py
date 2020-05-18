@@ -1,8 +1,11 @@
 import os
+import re
 import requests
 import pickle
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.colors as pc
 import dash
 import dash_table
 import dash_core_components as dcc
@@ -277,10 +280,36 @@ def format_date(unformatted_date):
 
 
 # --- Plotting!
-def plot_bar_timeseries(df, measures, colors, start_date):
+START_DATE = "2020-03-08"
+
+def plot_bar_timeseries(df, measures, colors, color_scale=""):
     """ Make a pretty bar plot of a timeseries """
+    # If a colorscale is specified, set the colors to a list of arrays,
+    # rather than a list of strings,
+    # to trigger the colorscale behaviour on go.Bar()
+    color_args = {}
+    if color_scale:
+        colors = [
+            np.ones(len(df)) * c
+            for c in colors 
+        ]
+        color_args = {
+            "colorscale": color_scale,
+            "cmin": min(colors[0]),
+            "cmax": max(colors[-1]),
+            }
+
     bars = [
-        go.Bar(name=m, x=df.index, y=df[m], marker_color=c, hovertemplate="%{x}: %{y}")
+        go.Bar(
+            name=m, 
+            x=df.index, 
+            y=df[m], 
+            marker={
+                **{"color": c},
+                **color_args,
+            },
+            hovertemplate="%{x}: %{y}"
+            )
         for c, m in zip(colors, measures)
     ]
 
@@ -290,7 +319,7 @@ def plot_bar_timeseries(df, measures, colors, start_date):
             barmode="stack",
             xaxis={
                 "type": "date",
-                "range":[pd.to_datetime(start_date), pd.to_datetime("today")],
+                "range":[pd.to_datetime(START_DATE), pd.to_datetime("today")],
                 "tickformat": "%B %-d",
                 "tickvals": [d for d in
                     pd.date_range(df.index.min(), df.index.max())
@@ -318,38 +347,79 @@ def plot_bar_timeseries(df, measures, colors, start_date):
     return fig
 
 
+def date_agg(df, agg_col, date_col="Episode Date", cols_exclude=False):
+    """ Return a wide DataFrame whose columns are the counts of each value in the agg_col per day """
+    if not cols_exclude:
+        cols_exclude = []
+    df_agg = df.groupby([date_col, agg_col])[agg_col].count().unstack().fillna(0).drop(cols_exclude, axis=1)
+    return df_agg
+
 # *** Overview
 OVERVIEW_TITLE = "Deaths and outstanding cases"
 
 
-def plot_overview(df):
+def plot_overview(data_status):
     """ Return an Overview plot. """
     measures = ["Outstanding cases", "Deaths"]
     colors = ["steelblue", "darkgray"]
-    start_date = "2020-03-08"
-    return plot_bar_timeseries(df, measures, colors, start_date)
+    return plot_bar_timeseries(data_status, measures, colors)
 
 # *** Hospital
 HOSPITAL_TITLE = "Hospital beds"
 
 
-def plot_hospital(df):
+def plot_hospital(data_status):
     """ Return a Hospital plot. """
     measures = ["Hospital beds", "ICU beds", "Ventilator beds"]
     colors = ["sandybrown", "salmon", "indianred"]
-    start_date = "2020-03-08"
-    return plot_bar_timeseries(df, measures, colors, start_date)
+    return plot_bar_timeseries(data_status, measures, colors)
+
 
 # *** Tests
 TESTS_TITLE = "Testing volume"
 
-def plot_tests(df):
+def plot_tests(data_status):
     """ Return a Tests plot. """
     measures = ["Tests"]
     colors = ["darkslateblue"]
-    start_date = "2020-03-08"
-    return plot_bar_timeseries(df, measures, colors, start_date)
+    return plot_bar_timeseries(data_status, measures, colors)
 
+
+# *** Episode dates
+EPISODE_TITLE = "Case outcomes"
+EPISODE_TEXT = "Episode date is the estimated date of disease onset."
+
+def plot_episode(data_con_pos):
+    """ Return an Episode plot. """
+    outcomes = date_agg(data_con_pos, agg_col="Outcome", date_col="Episode Date") 
+    outcomes = outcomes.rename(columns={
+        "Not Resolved": "Outstanding",
+        "Fatal": "Deaths"
+    })
+
+    measures = ["Resolved", "Deaths", "Outstanding"]
+    colors = ["seagreen", "darkgray", "steelblue"]
+    return plot_bar_timeseries(outcomes, measures, colors)
+
+
+# *** Age
+AGE_CASES_SUBTITLE = "Cases by age group"
+AGE_DEATHS_SUBTITLE = "Deaths by age group"
+
+def plot_age_cases(data_con_pos):
+    """ Return an age cases plot. """
+    age_cases = date_agg(data_con_pos, agg_col="Age", date_col="Episode Date", cols_exclude=["<20", "Unknown"]) 
+
+    ages = [int(re.sub('[^0-9]','', a)) for a in age_cases.columns] # Turn the ages into numbers
+    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=ages, color_scale="Rainbow")
+
+def plot_age_deaths(data_con_pos):
+    """ Return an age deaths plot. """
+    data_con_pos_fatal = data_con_pos[data_con_pos["Outcome"] == "Fatal"]
+    age_cases = date_agg(data_con_pos_fatal, agg_col="Age", date_col="Episode Date") 
+
+    ages = [int(re.sub('[^0-9]','', a)) for a in age_cases.columns] # Turn the ages into numbers
+    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=ages, color_scale="Rainbow")
 
 # --- Page layout
 def build_layout(datasets):
@@ -417,12 +487,38 @@ def build_layout(datasets):
                 ]
             ),
             html.Br(),
-            # Data table: confirmed positive cases
-            html.Div(html.H2(TEXT_CON_POS_TABLE)),
-            dash_table.DataTable(
-                id="table_con_pos",
-                columns=[{"name": i, "id": i} for i in data_con_pos.columns],
-                data=data_con_pos.tail(10).to_dict("records"),
+            # Outcomes by episode date
+            html.Div(
+                [
+                    html.H2([EPISODE_TITLE]),
+                    html.P([EPISODE_TEXT]),
+                    dcc.Graph(
+                        figure=plot_episode(data_con_pos),
+                        config={'displayModeBar': False}
+                        ),
+                ]
+            ),
+            html.Br(),
+            # Cases by age group
+            html.Div(
+                [
+                    html.H2([AGE_CASES_SUBTITLE]),
+                    dcc.Graph(
+                        figure=plot_age_cases(data_con_pos),
+                        config={'displayModeBar': False}
+                        ),
+                ]
+            ),
+            html.Br(),
+            # Deaths by age group
+            html.Div(
+                [
+                    html.H2([AGE_DEATHS_SUBTITLE]),
+                    dcc.Graph(
+                        figure=plot_age_deaths(data_con_pos),
+                        config={'displayModeBar': False}
+                        ),
+                ]
             ),
             html.Br(),
         ],

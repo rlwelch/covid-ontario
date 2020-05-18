@@ -1,5 +1,6 @@
 gunicorn
 requests
+numpy
 pandas
 plotly
 dash
