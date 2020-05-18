@@ -209,6 +209,8 @@ class Dataset:
         Clean the "Confirmed positive cases of COVID-19 in Ontario" dataset
         """
         df = self.data
+        bad_date_mask = df["Accurate_Episode_Date"].str[0:4].astype(int) > int(pd.to_datetime("today").strftime("%Y"))
+        df = df.loc[~bad_date_mask]
         df["Accurate_Episode_Date"] = pd.to_datetime(df["Accurate_Episode_Date"])
         df = df.sort_values(by="Accurate_Episode_Date")
         df = df.rename(
