@@ -331,9 +331,7 @@ def plot_bar_timeseries(df, measures, colors):
         color_discrete_map=measure_color_map,
     )
 
-    fig.update_traces(
-        hovertemplate="%{y}"
-    )
+    fig.update_traces(hovertemplate="%{y}")
 
     fig.update_layout(
         barmode="stack",
@@ -444,6 +442,31 @@ def plot_age_deaths(data_con_pos):
     return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=color_map)
 
 
+# *** Acquisition method
+ACQ_TITLE = "Cases by acquisition method"
+
+
+def plot_acquisition(data_con_pos):
+    """ Return an Acquisition plot. """
+    acq = date_agg(data_con_pos, agg_col="Acquisition", date_col="Episode Date")
+    acq_norm = 100 * acq.divide(acq.sum(axis=1), axis=0)
+    acq_norm = acq_norm.rename(columns={"Travel-Related": "Travel"})
+
+    measures = [
+        "Travel",
+        "Contact of a confirmed case",
+        "Neither",
+        "Information pending",
+    ]
+    colors = ["orangered", "hotpink", "darkturquoise", "lightgrey"]
+    fig = plot_bar_timeseries(acq_norm, measures, colors)
+    fig.update_layout(
+        xaxis_title="Episode date",
+        yaxis_title="Percent"
+    )
+    return fig
+
+
 # --- Page layout
 def build_layout(datasets):
     most_recently_updated = format_date(get_most_recent_update(datasets))
@@ -536,6 +559,17 @@ def build_layout(datasets):
                     html.H2([AGE_DEATHS_SUBTITLE]),
                     dcc.Graph(
                         figure=plot_age_deaths(data_con_pos),
+                        config={"displayModeBar": False},
+                    ),
+                ]
+            ),
+            html.Br(),
+            # Acquisition method
+            html.Div(
+                [
+                    html.H2([ACQ_TITLE]),
+                    dcc.Graph(
+                        figure=plot_acquisition(data_con_pos),
                         config={"displayModeBar": False},
                     ),
                 ]
