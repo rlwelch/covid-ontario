@@ -331,8 +331,13 @@ def plot_bar_timeseries(df, measures, colors):
         color_discrete_map=measure_color_map,
     )
 
+    fig.update_traces(
+        hovertemplate="%{y}"
+    )
+
     fig.update_layout(
         barmode="stack",
+        hovermode="x",
         xaxis={
             "title": "Date",
             "type": "date",
