@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import plotly.colors as pc
 import dash
 import dash_table
@@ -280,79 +281,88 @@ def format_date(unformatted_date):
 
 
 # --- Plotting!
-START_DATE = "2020-03-08"
+def date_agg(df, agg_col, date_col="Episode Date", cols_exclude=False):
+    """ 
+    Return a wide DataFrame where:
+        Index is a datetime
+        Columns are the counts of each value in the agg_col per day """
+    if not cols_exclude:
+        cols_exclude = []
+    df_agg = (
+        df.groupby([date_col, agg_col])[agg_col]
+        .count()
+        .unstack()
+        .fillna(0)
+        .drop(cols_exclude, axis=1)
+    )
+    return df_agg
 
-def plot_bar_timeseries(df, measures, colors, color_scale=""):
+
+def tidy(df):
+    """ Switch from wide to long format """
+    df_tidy = df.copy()
+    df_tidy.columns.name = "Measure"
+    df_tidy = df_tidy.stack()
+    df_tidy.name = "Count"
+    df_tidy = df_tidy.reset_index(level=1)
+    return df_tidy
+
+
+def plot_bar_timeseries(df, measures, colors):
     """ Make a pretty bar plot of a timeseries """
-    # If a colorscale is specified, set the colors to a list of arrays,
-    # rather than a list of strings,
-    # to trigger the colorscale behaviour on go.Bar()
-    color_args = {}
-    if color_scale:
-        colors = [
-            np.ones(len(df)) * c
-            for c in colors 
-        ]
-        color_args = {
-            "colorscale": color_scale,
-            "cmin": min(colors[0]),
-            "cmax": max(colors[-1]),
-            }
+    # Make tidy for plotting with Plotly Express
+    df_plot = tidy(df)
 
-    bars = [
-        go.Bar(
-            name=m, 
-            x=df.index, 
-            y=df[m], 
-            marker={
-                **{"color": c},
-                **color_args,
-            },
-            hovertemplate="%{x}: %{y}"
-            )
-        for c, m in zip(colors, measures)
-    ]
+    # Filter and sort by measures
+    df_plot = df_plot[df_plot["Measure"].isin(measures)]
+    cat_dtype = pd.api.types.CategoricalDtype(categories=measures, ordered=True)
+    df_plot["Measure"] = df_plot["Measure"].astype(cat_dtype)
+    df_plot = df_plot.sort_values(by=["Measure"])
 
-    fig = go.Figure(
-        data=bars,
-        layout=go.Layout(
-            barmode="stack",
-            xaxis={
-                "type": "date",
-                "range":[pd.to_datetime(START_DATE), pd.to_datetime("today")],
-                "tickformat": "%B %-d",
-                "tickvals": [d for d in
-                    pd.date_range(df.index.min(), df.index.max())
-                    if (d.day in [1, 15])
-                    ],
-                "showgrid": True,
-                "gridcolor": "gainsboro",
-            },
-            yaxis={
-                "showgrid": True,
-                "gridcolor": "gainsboro",
-            },
-             legend={
-                "xanchor":"center",
-                "x": 0.5,
-                "y": 1.1,
-                "orientation": "h",
-                "traceorder": "reversed",
-            },
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            margin={"t": 0, "l": 0, "r": 0},
-        ),
+    # Map measures to colors
+    measure_color_map = {m: c for m, c in zip(measures, colors)}
+
+    fig = px.bar(
+        df_plot,
+        x=df_plot.index,
+        y="Count",
+        color="Measure",
+        hover_name="Measure",
+        color_discrete_map=measure_color_map,
+    )
+
+    fig.update_layout(
+        barmode="stack",
+        xaxis={
+            "title": "Date",
+            "type": "date",
+            "range": [pd.to_datetime(START_DATE), pd.to_datetime("today")],
+            "tickformat": "%B %-d",
+            "tickvals": [
+                d
+                for d in pd.date_range(df.index.min(), df.index.max())
+                if (d.day in [1, 15])
+            ],
+            "showgrid": True,
+            "gridcolor": "gainsboro",
+        },
+        yaxis={"title": "", "showgrid": True, "gridcolor": "gainsboro",},
+        legend={
+            "title_text": "",
+            "xanchor": "center",
+            "x": 0.5,
+            "y": 1.1,
+            "orientation": "h",
+            "traceorder": "reversed",
+        },
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin={"t": 0, "l": 0, "r": 0},
     )
     return fig
 
 
-def date_agg(df, agg_col, date_col="Episode Date", cols_exclude=False):
-    """ Return a wide DataFrame whose columns are the counts of each value in the agg_col per day """
-    if not cols_exclude:
-        cols_exclude = []
-    df_agg = df.groupby([date_col, agg_col])[agg_col].count().unstack().fillna(0).drop(cols_exclude, axis=1)
-    return df_agg
+START_DATE = "2020-03-15"
 
 # *** Overview
 OVERVIEW_TITLE = "Deaths and outstanding cases"
@@ -363,6 +373,7 @@ def plot_overview(data_status):
     measures = ["Outstanding cases", "Deaths"]
     colors = ["steelblue", "darkgray"]
     return plot_bar_timeseries(data_status, measures, colors)
+
 
 # *** Hospital
 HOSPITAL_TITLE = "Hospital beds"
@@ -378,6 +389,7 @@ def plot_hospital(data_status):
 # *** Tests
 TESTS_TITLE = "Testing volume"
 
+
 def plot_tests(data_status):
     """ Return a Tests plot. """
     measures = ["Tests"]
@@ -389,16 +401,16 @@ def plot_tests(data_status):
 EPISODE_TITLE = "Case outcomes"
 EPISODE_TEXT = "Episode date is the estimated date of disease onset."
 
+
 def plot_episode(data_con_pos):
     """ Return an Episode plot. """
-    outcomes = date_agg(data_con_pos, agg_col="Outcome", date_col="Episode Date") 
-    outcomes = outcomes.rename(columns={
-        "Not Resolved": "Outstanding",
-        "Fatal": "Deaths"
-    })
+    outcomes = date_agg(data_con_pos, agg_col="Outcome", date_col="Episode Date")
+    outcomes = outcomes.rename(
+        columns={"Not Resolved": "Outstanding", "Fatal": "Deaths"}
+    )
 
     measures = ["Resolved", "Deaths", "Outstanding"]
-    colors = ["seagreen", "darkgray", "steelblue"]
+    colors = ["darkseagreen", "darkgray", "steelblue"]
     return plot_bar_timeseries(outcomes, measures, colors)
 
 
@@ -406,20 +418,26 @@ def plot_episode(data_con_pos):
 AGE_CASES_SUBTITLE = "Cases by age group"
 AGE_DEATHS_SUBTITLE = "Deaths by age group"
 
+
 def plot_age_cases(data_con_pos):
     """ Return an age cases plot. """
-    age_cases = date_agg(data_con_pos, agg_col="Age", date_col="Episode Date", cols_exclude=["<20", "Unknown"]) 
+    age_cases = date_agg(
+        data_con_pos,
+        agg_col="Age",
+        date_col="Episode Date",
+        cols_exclude=["<20", "Unknown"],
+    )
+    color_map = px.colors.sequential.Rainbow[1:]
+    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=color_map)
 
-    ages = [int(re.sub('[^0-9]','', a)) for a in age_cases.columns] # Turn the ages into numbers
-    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=ages, color_scale="Rainbow")
 
 def plot_age_deaths(data_con_pos):
     """ Return an age deaths plot. """
     data_con_pos_fatal = data_con_pos[data_con_pos["Outcome"] == "Fatal"]
-    age_cases = date_agg(data_con_pos_fatal, agg_col="Age", date_col="Episode Date") 
+    age_cases = date_agg(data_con_pos_fatal, agg_col="Age", date_col="Episode Date")
+    color_map = px.colors.sequential.Rainbow[1:]
+    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=color_map)
 
-    ages = [int(re.sub('[^0-9]','', a)) for a in age_cases.columns] # Turn the ages into numbers
-    return plot_bar_timeseries(age_cases, measures=age_cases.columns, colors=ages, color_scale="Rainbow")
 
 # --- Page layout
 def build_layout(datasets):
@@ -458,32 +476,29 @@ def build_layout(datasets):
                     html.H2([OVERVIEW_TITLE]),
                     dcc.Graph(
                         figure=plot_overview(data_status),
-                        config={'displayModeBar': False}
-                        ),
+                        config={"displayModeBar": False},
+                    ),
                 ]
             ),
             html.Br(),
-
             # Hospital
             html.Div(
                 [
                     html.H2([HOSPITAL_TITLE]),
                     dcc.Graph(
                         figure=plot_hospital(data_status),
-                        config={'displayModeBar': False}
-                        ),
+                        config={"displayModeBar": False},
+                    ),
                 ]
             ),
             html.Br(),
-
             # Tests
             html.Div(
                 [
                     html.H2([TESTS_TITLE]),
                     dcc.Graph(
-                        figure=plot_tests(data_status),
-                        config={'displayModeBar': False}
-                        ),
+                        figure=plot_tests(data_status), config={"displayModeBar": False}
+                    ),
                 ]
             ),
             html.Br(),
@@ -494,8 +509,8 @@ def build_layout(datasets):
                     html.P([EPISODE_TEXT]),
                     dcc.Graph(
                         figure=plot_episode(data_con_pos),
-                        config={'displayModeBar': False}
-                        ),
+                        config={"displayModeBar": False},
+                    ),
                 ]
             ),
             html.Br(),
@@ -505,8 +520,8 @@ def build_layout(datasets):
                     html.H2([AGE_CASES_SUBTITLE]),
                     dcc.Graph(
                         figure=plot_age_cases(data_con_pos),
-                        config={'displayModeBar': False}
-                        ),
+                        config={"displayModeBar": False},
+                    ),
                 ]
             ),
             html.Br(),
@@ -516,8 +531,8 @@ def build_layout(datasets):
                     html.H2([AGE_DEATHS_SUBTITLE]),
                     dcc.Graph(
                         figure=plot_age_deaths(data_con_pos),
-                        config={'displayModeBar': False}
-                        ),
+                        config={"displayModeBar": False},
+                    ),
                 ]
             ),
             html.Br(),
