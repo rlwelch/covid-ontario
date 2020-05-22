@@ -281,6 +281,8 @@ def format_date(unformatted_date):
 
 
 # --- Plotting!
+START_DATE = "2020-03-15"
+
 def date_agg(df, agg_col, date_col="Episode Date", cols_exclude=False):
     """ 
     Return a wide DataFrame where:
@@ -307,18 +309,53 @@ def tidy(df):
     df_tidy = df_tidy.reset_index(level=1)
     return df_tidy
 
+def filter_sort_measures(df, measures):
+    """ Filter a tidy DataFrame to just the measures specified, 
+    and sort by them in the order specified """
+    df_filter_sort = df[df["Measure"].isin(measures)].copy()
+    cat_dtype = pd.api.types.CategoricalDtype(categories=measures, ordered=True)
+    df_filter_sort["Measure"] = df_filter_sort["Measure"].astype(cat_dtype)
+    df_filter_sort = df_filter_sort.sort_values(by=["Measure"])
+    return df_filter_sort
+
+PLOT_LAYOUT = dict(
+        barmode="stack",
+        hovermode="x",
+        xaxis={
+            "title": "Date",
+            "type": "date",
+            "range": [pd.to_datetime(START_DATE), pd.to_datetime("today")],
+            "tickformat": "%B %-d",
+            "tickvals": [
+                d
+                for d in pd.date_range(pd.to_datetime(START_DATE), pd.to_datetime("today"))
+                if (d.day in [1, 15])
+            ],
+            "showgrid": True,
+            "gridcolor": "gainsboro",
+        },
+        yaxis={
+            "title": "", 
+            "showgrid": True, 
+            "gridcolor": "gainsboro",
+        },
+        legend={
+            "title_text": "",
+            "xanchor": "center",
+            "x": 0.5,
+            "y": 1.1,
+            "orientation": "h",
+            "traceorder": "reversed",
+        },
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin={"t": 0, "l": 0, "r": 0},
+)
 
 def plot_bar_timeseries(df, measures, colors):
     """ Make a pretty bar plot of a timeseries """
-    # Make tidy for plotting with Plotly Express
-    df_plot = tidy(df)
-
-    # Filter and sort by measures
-    df_plot = df_plot[df_plot["Measure"].isin(measures)]
-    cat_dtype = pd.api.types.CategoricalDtype(categories=measures, ordered=True)
-    df_plot["Measure"] = df_plot["Measure"].astype(cat_dtype)
-    df_plot = df_plot.sort_values(by=["Measure"])
-
+    # Make tidy, filtered and ordered for plotting with Plotly Express
+    df_plot = filter_sort_measures(tidy(df), measures)
     # Map measures to colors
     measure_color_map = {m: c for m, c in zip(measures, colors)}
 
@@ -332,40 +369,58 @@ def plot_bar_timeseries(df, measures, colors):
     )
 
     fig.update_traces(hovertemplate="%{y}")
-
-    fig.update_layout(
-        barmode="stack",
-        hovermode="x",
-        xaxis={
-            "title": "Date",
-            "type": "date",
-            "range": [pd.to_datetime(START_DATE), pd.to_datetime("today")],
-            "tickformat": "%B %-d",
-            "tickvals": [
-                d
-                for d in pd.date_range(df.index.min(), df.index.max())
-                if (d.day in [1, 15])
-            ],
-            "showgrid": True,
-            "gridcolor": "gainsboro",
-        },
-        yaxis={"title": "", "showgrid": True, "gridcolor": "gainsboro",},
-        legend={
-            "title_text": "",
-            "xanchor": "center",
-            "x": 0.5,
-            "y": 1.1,
-            "orientation": "h",
-            "traceorder": "reversed",
-        },
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin={"t": 0, "l": 0, "r": 0},
-    )
+    fig.update_layout(PLOT_LAYOUT)
+    
     return fig
 
+def plot_line_timeseries(df, measures, colors):
+    """ Make a pretty line plot of a timeseries, including rolling averages """
+    # Compute change metrics: difference per day, and rolling 7 day average of difference
+    df_chg_dif = (df - df.shift(1)).fillna(0)
+    df_chg_avg = df_chg_dif.rolling(7).mean()
 
-START_DATE = "2020-03-15"
+    # Make tidy, filtered and ordered for plotting with Plotly Express
+    df_chg_dif = filter_sort_measures(tidy(df_chg_dif), measures)
+    df_chg_avg = filter_sort_measures(tidy(df_chg_avg), measures)
+
+    # Map measures to colors
+    measure_color_map = {m: c for m, c in zip(measures, colors)}
+
+    # Add scatter points
+    fig = px.scatter(
+        df_chg_dif,
+        x=df_chg_dif.index,
+        y="Count",
+        color="Measure",
+        hover_name="Measure",
+        color_discrete_map=measure_color_map,
+    )
+    fig.update_traces(
+        opacity=0.5,
+        marker={"size": 9}
+    )
+
+    # Add average lines
+    for m in measures:
+        df_plot = df_chg_avg[df_chg_avg["Measure"] == m]
+        df_plot = df_plot.sort_index()
+        fig.add_trace(
+            go.Scatter(
+                x=df_plot.index,
+                y=df_plot["Count"],
+                name=m,
+                mode="lines",
+                line={
+                    "color": measure_color_map[m],
+                    "width": 3
+                }
+            )
+        )
+
+    fig.update_layout(PLOT_LAYOUT)
+    fig.update_traces(hovertemplate="%{y}")
+
+    return fig 
 
 # *** Overview
 OVERVIEW_TITLE = "Deaths and outstanding cases"
@@ -376,6 +431,12 @@ def plot_overview(data_status):
     measures = ["Outstanding cases", "Deaths"]
     colors = ["steelblue", "darkgray"]
     return plot_bar_timeseries(data_status, measures, colors)
+
+def plot_overview_change(data_status):
+    """ Return the change in Overview plot. """
+    measures = ["Outstanding cases", "Deaths"]
+    colors = ["steelblue", "darkgray"]
+    return plot_line_timeseries(data_status, measures, colors)
 
 
 # *** Hospital
@@ -504,6 +565,10 @@ def build_layout(datasets):
                     html.H2([OVERVIEW_TITLE]),
                     dcc.Graph(
                         figure=plot_overview(data_status),
+                        config={"displayModeBar": False},
+                    ),
+                    dcc.Graph(
+                        figure=plot_overview_change(data_status),
                         config={"displayModeBar": False},
                     ),
                 ]
