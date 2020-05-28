@@ -254,7 +254,7 @@ def get_most_recent_update(datasets):
 
 # --- Text
 TEXT_TITLE = "covid-ontario"
-TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario"
+TEXT_TAGLINE = "Follow the rise and fall of COVID-19 in Ontario, for your friends"
 
 TEXT_BODY = "This is an independent project to visualize the "
 TEXT_LINK_CATALOG = "Ontario Data Catalog's COVID-19 data"
