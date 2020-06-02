@@ -160,6 +160,8 @@ def clean_pos_data(pos):
         The COVID confirmed positive, cleaned.
     """
     df = pos.copy()
+    not_a_date_mask = df["Accurate_Episode_Date"].str.contains(":")
+    df = df[~not_a_date_mask]
     bad_date_mask = df["Accurate_Episode_Date"].str[0:4].astype(int) > int(pd.to_datetime("today").strftime("%Y"))
     pos_cleaned = df[~bad_date_mask]
     return pos_cleaned
