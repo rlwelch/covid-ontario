@@ -614,6 +614,7 @@ def main():
         colormap="tab20",
         title_append="COVID cases by acquisition method",
         days_warning=7,
+        plot_change=False
     )
     plt.xlabel("Episode date")
     fig.savefig(os.path.join(FOLDER_IMAGES, "cases_acquisition.png"), bbox_inches='tight')
